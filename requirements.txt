@@ -1,0 +1,12 @@
+playwright
+pyyaml
+requests
+httpx
+numpy
+pandas
+matplotlib
+
+# for debugging and tracing
+snoop
+# for cli parsing
+fire
