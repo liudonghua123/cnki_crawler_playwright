@@ -5,6 +5,8 @@ httpx
 numpy
 pandas
 matplotlib
+# https://github.com/dfurtado/dataclass-csv
+dataclass_csv 
 
 # for debugging and tracing
 snoop

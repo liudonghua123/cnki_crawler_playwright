@@ -13,3 +13,7 @@
 - https://playwright.dev/python/docs/debug#headed-mode
 - https://wonderdevelop.com/css-multiple-attribute-selector/
 - https://realpython.com/python-assert-statement/
+- https://github.com/microsoft/playwright/issues/9272
+- https://github.com/microsoft/playwright/issues/10648
+- https://docs.python.org/3/library/dataclasses.html
+- https://github.com/dfurtado/dataclass-csv#using-the-dataclasswriter 
