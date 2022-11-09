@@ -34,8 +34,11 @@ with open(
     config = yaml.safe_load(file)
 
 logger.info(f"load config: {config}")
+
 search_author: str = config['search_settings']['search_author']
 same_name_selection: list[int] = config['search_settings']['same_name_selection']
+headless: bool = config['playwright']['headless']
+slow_mo: int = config['playwright']['slow_mo']
 
 #%%
 # some help functions
@@ -85,15 +88,62 @@ class  SearchResult:
     publish_datetime: str
     # 被引
     back_reference: Link
+    # 被引详情
+    back_reference_details: list[Link]
     # 下载
     download_count: Link
-    
+  
+
+def get_back_reference_details(context, link_url: str) -> list[Link]:
+    # 获取被引详情信息，获取文章名称、链接
+    # https://kns.cnki.net/kcms/detail/search.aspx?sfield=cite&code=BGYS202103001&dbcode=CJFD&sKey=%e4%b8%ad%e5%9b%bd%e5%ae%9e%e7%8e%b02030%e5%b9%b4%e5%89%8d%e7%a2%b3%e8%be%be%e5%b3%b0%e7%9b%ae%e6%a0%87%e5%8f%8a%e4%b8%bb%e8%a6%81%e9%80%94%e5%be%84
+    back_references_details = []
+    page: Page = context.new_page()
+    page.goto(link_url)
+    # 获取总的分类数
+    section_count = page.locator('div#divResult > div.essayBox').count()
+    logger.info(f"url {link_url}, section_count: {section_count}")
+    for i in range(1, section_count + 1):
+        section = page.locator(f'div#divResult > div.essayBox:nth-child({i})')
+        section_name = section.locator('div.dbTitle').inner_text().split(' ')[0]
+        section_total_count = section.locator('span[name=pcount]').inner_text()
+        logger.info(f"section_name: {section_name}, section_total_count: {section_total_count}")
+        # 初始化该分类页数为1页，如果有多页，会有pageBar
+        section_page_count = 1
+        page_bar_exits, _ = selector_exists(section, 'div.pageBar')
+        if page_bar_exits:
+          # 获取该分类下的总页数，结果类似于 '共2页      1 2 下一页 末页 '
+          page_bar_text = section.locator('div.pageBar > span').inner_text()
+          section_page_count = int(page_bar_text.split('共')[1].split('页')[0])
+        # 获取每个分类下的文章数
+        for j in range(1, section_page_count + 1):
+          # article_count 有时候可能还没有更新，导致获取的数据还是上一次的，所以这里等待一下
+          sleep(a_bit_waiting_time)
+          article_count = section.locator('ul > li').count()
+          for k in range(1, article_count + 1):
+              # 一些文章没有链接，只有标题，例如 图书 分类下的文章
+              # 这里限定a:nth-child(2)，否则会有多个结果，例如 https://kns.cnki.net/kcms/detail/search.aspx?sfield=cite&code=BGYS202103001&dbcode=CJFD&sKey=%e4%b8%ad%e5%9b%bd%e5%ae%9e%e7%8e%b02030%e5%b9%b4%e5%89%8d%e7%a2%b3%e8%be%be%e5%b3%b0%e7%9b%ae%e6%a0%87%e5%8f%8a%e4%b8%bb%e8%a6%81%e9%80%94%e5%be%84
+              # 中硕士第1页的第5篇文章
+              article_exists, article = selector_exists(section, f'ul > li:nth-child({k}) a:nth-child(2)')
+              if article_exists:
+                article_link = Link(article.inner_text(), article.evaluate('a => a.href'))
+                back_references_details.append(article_link)
+                logger.info(f"section_name: {section_name}, page {j:>02}, {k:>02}/{article_count} article_link: {article_link}")
+              else:
+                logger.warn(f"section_name: {section_name}, page {j:>02}, {k:>02}/{article_count} does not have link")
+          # 点击下一页，下一页按钮比较难定位，从pagebar中的倒数第二个链接中获取
+          section.locator('div.pageBar > span > a:nth-last-child(2)').click()
+    # 获取总条数
+    # 获取当前页/总页数
+    page.close()
+    return back_references_details
 
 #%%
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(channel="chrome", headless=False, slow_mo=100)
+        browser = p.chromium.launch(channel="chrome", headless=headless, slow_mo=slow_mo)
         context = browser.new_context()
+        
         page = context.new_page()
         page.goto("https://cnki.net/")
         # Get page after a specific action (e.g. clicking a link)
@@ -169,6 +219,9 @@ def main():
                 if len(row.locator('td.quote').inner_text()) > 0:
                     back_reference_locator = row.locator('td.quote > a')
                     back_reference = Link(back_reference_locator.inner_text(), back_reference_locator.evaluate('a => a.href'))
+                    # TODO: 获取被引详情
+                    back_references_details = get_back_reference_details(context, back_reference.url)
+                
                 # 下载
                 download_count = Link(row.locator('td.download > a').inner_text(), row.locator('td.download > a').evaluate('a => a.href'))
                 
@@ -179,6 +232,7 @@ def main():
                     publication,
                     publish_datetime,
                     back_reference,
+                    back_references_details,
                     download_count,
                 )
                 logger.info(f'page {page_num}, {i:>02}/{rows_count}, search_result: {search_result}')

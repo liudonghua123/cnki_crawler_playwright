@@ -1,3 +1,6 @@
+playwright:
+  headless: false
+  slow_mo: 100
 # 搜索设置
 search_settings:
   search_author: 胡鞍钢
