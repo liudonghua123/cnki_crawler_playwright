@@ -2,7 +2,7 @@
 import sys
 from os.path import dirname, join, realpath
 from time import sleep
-
+import re
 import yaml
 import asyncio
 from dataclasses import dataclass
@@ -114,7 +114,8 @@ def get_back_reference_details(context, link_url: str) -> list[Link]:
         if page_bar_exits:
           # 获取该分类下的总页数，结果类似于 '共2页      1 2 下一页 末页 '
           page_bar_text = section.locator('div.pageBar > span').inner_text()
-          section_page_count = int(page_bar_text.split('共')[1].split('页')[0])
+          # section_page_count = int(page_bar_text.split('共')[1].split('页')[0])
+          section_page_count = int(re.search('共(?P<count>\d+)页', page_bar_text).group('count'))
         # 获取每个分类下的文章数
         for j in range(1, section_page_count + 1):
           # article_count 有时候可能还没有更新，导致获取的数据还是上一次的，所以这里等待一下
