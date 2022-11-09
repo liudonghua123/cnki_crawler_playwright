@@ -133,8 +133,7 @@ def get_back_reference_details(context, link_url: str) -> list[Link]:
                 logger.warn(f"section_name: {section_name}, page {j:>02}, {k:>02}/{article_count} does not have link")
           # 点击下一页，下一页按钮比较难定位，从pagebar中的倒数第二个链接中获取
           section.locator('div.pageBar > span > a:nth-last-child(2)').click()
-    # 获取总条数
-    # 获取当前页/总页数
+    # 关闭页面
     page.close()
     return back_references_details
 
