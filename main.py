@@ -97,6 +97,7 @@ def main():
         # 点击 学术期刊
         logger.info(f'click 学术期刊')
         sleep(a_bit_waiting_time) # TODO: wait for the page to load completely? otherwise the click will fail
+        page.wait_for_selector("ul.doctype-menus.keji > li[data-id=xsqk] a")
         focus_and_click(page, "ul.doctype-menus.keji > li[data-id=xsqk] a")
         # 等待点击后的页面加载完成
         logger.info(f'wait_for_selector 学术期刊')
@@ -104,8 +105,10 @@ def main():
         
         # 输入作者
         logger.info(f'input 输入作者 {search_author}')
-        page.focus("#gradetxt > dd:nth-child(3) > div.input-box > input[type=text]")
+        # 有时候会出现输入框没有获取到焦点的情况，所以这里先点击一下
         page.locator("#gradetxt > dd:nth-child(3) > div.input-box > input[type=text]").fill(search_author)
+        sleep(a_bit_waiting_time)
+        page.click("#gradetxt > dd:nth-child(3) > div.input-box > input[type=text]")
         # 选择右边弹窗里面的前两项
         logger.info(f'wait_for_selector {search_author} 同名作者列表')
         page.wait_for_selector("#gradetxt-2 > ul > li")
@@ -156,6 +159,7 @@ def main():
                 publish_datetime = row.locator('td.date').inner_text()
                 # 被引，可能为空
                 back_reference = None
+                back_references_details = None
                 if len(row.locator('td.quote').inner_text()) > 0:
                     back_reference_locator = row.locator('td.quote > a')
                     back_reference = Link(back_reference_locator.inner_text(), back_reference_locator.evaluate('a => a.href'))
