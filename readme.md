@@ -1,5 +1,18 @@
 # cnki_crawler_playwright
 
+### How to run it
+
+1. `git clone https://github.com/liudonghua123/cnki_crawler_playwright.git`
+2. `cd cnki_crawler_playwright` or `code cnki_crawler_playwright`
+3. `pip install -r requirements.txt`
+4. update `config.yml` (optional)
+5. `python main.py`
+
+### ToDos
+
+- [ ] implement article page information crawler
+- [ ] optimize the data structure of the results for saving
+
 ### Reference links
 
 - https://code.visualstudio.com/docs/languages/python
